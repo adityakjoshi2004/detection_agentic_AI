@@ -16,7 +16,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ✅ Absolute path for static files
+#  Absolute path for static files
 BASE_DIR = Path(__file__).resolve().parent.parent  # points to `backend/`
 STATIC_DIR = BASE_DIR / "outputs"  # full path to `backend/outputs`
 
