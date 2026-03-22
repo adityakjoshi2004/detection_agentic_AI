@@ -132,7 +132,7 @@ Return ONLY the JSON object, no markdown fences, no extra text.
 
         # Print the alert to the server console for visibility
         print("\n" + "=" * 60)
-        print("🚨 SECURITY NOTIFICATION DISPATCHED")
+        print(" SECURITY NOTIFICATION DISPATCHED")
         print("=" * 60)
         print(f"Incident: {request.incident_id}")
         print(f"Risk Level: {request.risk_level}")
@@ -145,7 +145,7 @@ Return ONLY the JSON object, no markdown fences, no extra text.
         if helplines:
             print("EMERGENCY HELPLINES:")
             for h in helplines:
-                print(f"  📞 {h.get('name', 'Unknown')}: {h.get('number', 'N/A')} — {h.get('reason', '')}")
+                print(f"   {h.get('name', 'Unknown')}: {h.get('number', 'N/A')} — {h.get('reason', '')}")
         print("-" * 60)
         priority = parsed.get("notification_priority", [])
         if priority:
