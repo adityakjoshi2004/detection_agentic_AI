@@ -19,7 +19,7 @@ app = FastAPI()
 
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
-model = genai.GenerativeModel("gemini-2.5-flash")
+model = genai.GenerativeModel("gemma-3-4b-it")
 
 # ----------------------------
 # Request Schema
@@ -100,15 +100,25 @@ Respond ONLY in valid JSON:
         response = model.generate_content(prompt)
     raw_text = response.text.strip()
 
-    if raw_text.startswith("```"):
-        raw_text = raw_text.replace("```json", "").replace("```", "").strip()
+    import re
+    # Try to extract just the JSON block in case the model added conversational filler
+    json_match = re.search(r'\{.*\}', raw_text, re.DOTALL)
+    if json_match:
+        clean_json = json_match.group(0)
+    else:
+        clean_json = raw_text
 
     try:
-        parsed = json.loads(raw_text)
+        parsed = json.loads(clean_json)
         reasoning = parsed.get("reasoning", "No reasoning provided.")
 
-    except Exception:
-        reasoning = "AI explanation parsing failed."
+    except Exception as e:
+        print(f"--- FAILED TO PARSE JSON ---")
+        print(f"Error: {e}")
+        print(f"Raw model output:\n{raw_text}")
+        print(f"----------------------------")
+        # Fallback to returning the raw text instead of a useless error message
+        reasoning = raw_text
 
     # -----------------------------------
     #  Return risk assessment only

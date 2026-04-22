@@ -31,7 +31,7 @@ The Orchestrator forwards this data to the **Risk Agent** on port 8001 via `POST
 - If confidence > 0.8: `HIGH` risk.
 - If confidence > 0.5: `MEDIUM` risk.
 - Otherwise: `LOW` risk.
-- Using `gemini-2.5-flash`'s vision capabilities, the model analyzes the detection data and the actual scene image (if provided) to describe the threat context, scene layout, and proxemics.
+- Using `gemma-3-4b-it`'s vision capabilities, the model analyzes the detection data and the actual scene image (if provided) to describe the threat context, scene layout, and proxemics.
 - The Risk Agent returns an `incident_id`, the `risk_level`, and a detailed `risk_reasoning`.
 
 ## 3. Workflow Routing (`risk_router`)
@@ -54,3 +54,8 @@ After obtaining the SOPs, the Orchestrator moves to the `notify_node`.
 
 ## 6. Workflow Conclusion
 The Orchestrator receives the final algorithmic response from the Notification node, compiles the complete `state` of the incident timeline, and returns the aggregated rich data to the originating external system. For streaming requests (`/analyze_stream`), the SSE stream emits chronological events (`routing`, `processing`, `done`) and concludes with the final payload.
+
+## 7. Operational Environment and Technical Nuances
+Because the system operates in a decentralized microservice pattern, each AI agent operates as an isolated execution thread running on standalone ports.
+- **Virtual Environments:** Python virtual environments (`venv`) establish boundaries so dependency requirements such as `sentence-transformers` (for the SOP Retrieval Phase Chroma embeddings), `google-generativeai` (for the LLM reasoning payload), and the native LangGraph orchestrator frameworks function without interference.
+- **Static Assets Requirement:** A prerequisite for Phase 1 processing is an accessible `outputs` directory. The FastAPI instance automatically mounts this via `StaticFiles` rendering, enabling the frontend to properly retrieve locally generated annotated threat visualizations.

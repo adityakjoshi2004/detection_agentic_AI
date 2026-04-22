@@ -15,16 +15,16 @@ The system consists of the following microservice agents, built using FastAPI, L
 2. **Risk Agent (Port 8001)**
    - Performs risk assessment based on detection confidence scores.
    - Classifies risk into `LOW`, `MEDIUM`, or `HIGH`.
-   - Utilizes `gemini-2.5-flash`'s multimodal vision capabilities to analyze the scene image (if provided) alongside the detection data.
+   - Utilizes `gemma-3-4b-it`'s multimodal vision capabilities to analyze the scene image (if provided) alongside the detection data.
    - Generates natural language reasoning for the assigned risk level, incorporating visual observations of the threat context.
    
 3. **SOP Agent (Port 8002)**
-   - Employs an AI-first approach, supplementing Retrieval-Augmented Generation (RAG) (using `Chroma` vector store and `gemini-2.5-flash`).
+   - Employs an AI-first approach, supplementing Retrieval-Augmented Generation (RAG) (using `Chroma` vector store and `gemma-3-4b-it`).
    - Uses retrieved company emergency protocols as a starting point.
    - Expands the response beyond standard limits using its security expertise, adding immediate actions, communication chains, estimated response times, and AI-recommended steps.
 
 4. **Notification Agent (Port 8003)**
-   - Functions as an expert emergency communication AI using `gemini-2.5-flash`.
+   - Functions as an expert emergency communication AI using `gemma-3-4b-it`.
    - Receives the final consolidated incident data (incident ID, risk level, location, and structured SOPs).
    - Generates comprehensive, targeted notification content: a broad alert message, recipient-specific SMS templates, relevant emergency helplines, escalation triggers, and a notification priority list.
 
@@ -63,7 +63,20 @@ As LangGraph executes, it yields intermediate `processing` and `done` events bac
 - The Orchestrator aggregates all AI insights and returns them in a structured response to the caller.
 
 ## Technology Stack
-- **Frameworks:** FastAPI, LangChain, LangGraph
-- **AI/LLM:** Google Generative AI (gemini-2.5-flash) with Multimodal Vision Support
+- **Frameworks:** FastAPI, LangChain, LangGraph, React (Frontend), Node.js
+- **AI/LLM:** Google Generative AI (gemma-3-4b-it) with Multimodal Vision Support (Requires `google-generativeai` library)
 - **Vector Database:** Chroma
-- **Embeddings:** HuggingFace (`sentence-transformers/all-MiniLM-L6-v2`)
+- **Embeddings:** HuggingFace (`sentence-transformers/all-MiniLM-L6-v2` via `langchain-huggingface`)
+
+## Development & Execution Environment
+The orchestrator and agents require a properly isolated execution environment. Due to the number of concurrent services, utilizing a Python Virtual Environment (`venv`) is mandatory.
+
+- **Dependencies:** The backend relies on standard AI utility packages. Manual configuration for `google-generativeai` and `sentence-transformers` may be required within the virtual environments to ensure accurate LangChain binding. 
+- **Required Static Assets:** The primary backend on port 8004 dynamically relies on a local `outputs` directory for FastAPI `StaticFiles` mounting.
+- **Port Mapping:** 
+  - Port 8000: Personal Agent / Orchestrator (`a2a_security_system/personal_agent`)
+  - Port 8001: Risk Agent (`a2a_security_system/risk_agent`)
+  - Port 8002: SOP Agent (`a2a_security_system/sop_agent`)
+  - Port 8003: Notification Agent (`a2a_security_system/notification_agent`)
+  - Port 8004: Primary FastAPI Data Pipeline (`backend/run.py`)
+  - Port 3000: React Web User Interface

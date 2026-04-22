@@ -1,5 +1,7 @@
 import os
 import json
+import asyncio
+import httpx
 from pathlib import Path
 from fastapi import FastAPI
 from pydantic import BaseModel
@@ -7,6 +9,43 @@ from typing import List, Optional
 from dotenv import load_dotenv
 
 from langchain_google_genai import ChatGoogleGenerativeAI
+
+# ── ntfy.sh Configuration ─────────────────────────────────────────────────────
+NTFY_TOPIC = "weapon-alert-aditya-2026"
+NTFY_URL   = f"https://ntfy.sh/{NTFY_TOPIC}"
+
+PRIORITY_MAP = {
+    "HIGH":     "urgent",
+    "CRITICAL": "urgent",
+    "MEDIUM":   "high",
+    "LOW":      "default",
+}
+
+
+async def send_ntfy_alert(incident_id: str, risk_level: str, location: str, alert_message: str) -> None:
+    """Fire a non-blocking ntfy.sh push notification."""
+    priority = PRIORITY_MAP.get(risk_level.upper(), "default")
+    title    = f"[{risk_level}] Security Alert - {location}"
+    tags     = "rotating_light,shield" if risk_level.upper() in ("HIGH", "CRITICAL") else "warning"
+
+    headers = {
+        "Title":    title,
+        "Priority": priority,
+        "Tags":     tags,
+    }
+    body = (
+        f"Incident ID : {incident_id}\n"
+        f"Risk Level  : {risk_level}\n"
+        f"Location    : {location}\n\n"
+        f"{alert_message}"
+    )
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.post(NTFY_URL, content=body.encode("utf-8"), headers=headers)
+        print(f"[ntfy] Notification sent -> HTTP {response.status_code} | Topic: {NTFY_TOPIC}")
+    except Exception as exc:
+        print(f"[ntfy] Failed to send notification: {exc}")
 
 
 env_path = Path(__file__).parent / ".env"
@@ -17,7 +56,7 @@ app = FastAPI()
 
 # ── Gemini LLM ───────────────────────────────────────────────────────────
 llm = ChatGoogleGenerativeAI(
-    model="gemini-2.5-flash",
+    model="gemma-3-4b-it",
     temperature=0.25
 )
 
@@ -132,7 +171,7 @@ Return ONLY the JSON object, no markdown fences, no extra text.
 
         # Print the alert to the server console for visibility
         print("\n" + "=" * 60)
-        print("🚨 SECURITY NOTIFICATION DISPATCHED")
+        print(" SECURITY NOTIFICATION DISPATCHED")
         print("=" * 60)
         print(f"Incident: {request.incident_id}")
         print(f"Risk Level: {request.risk_level}")
@@ -153,6 +192,16 @@ Return ONLY the JSON object, no markdown fences, no extra text.
             for p in priority:
                 print(f"  {p}")
         print("=" * 60 + "\n")
+
+        # Fire ntfy.sh push notification (non-blocking background task)
+        asyncio.create_task(
+            send_ntfy_alert(
+                incident_id   = request.incident_id,
+                risk_level    = request.risk_level,
+                location      = request.location,
+                alert_message = parsed.get("alert_message", "Security alert triggered."),
+            )
+        )
 
         return parsed
 
